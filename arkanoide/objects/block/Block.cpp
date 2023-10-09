@@ -56,32 +56,25 @@ void Block::draw(float r, float g, float b) {
     glBindVertexArray(0);
 }
 
-// Verifica se há colisão entre a bola e o bloco
+template <typename T>
+constexpr const T& custom_clamp(const T& value, const T& minValue, const T& maxValue) {
+    return (value < minValue) ? minValue : ((value > maxValue) ? maxValue : value);
+}
+
 bool Block::checkCollision(Ball& ball) {
-    // Obtenha informações sobre a bola
-    glm::vec2 ballPosition = ball.getPosition();
-    float ballRadius = ball.getRadius();
+    // Calculate the closest point on the rectangle to the ball
+    float closestX = custom_clamp(ball.getPosition().x, position.x, position.x + width);
+    float closestY = custom_clamp(ball.getPosition().y, position.y, position.y + height);
 
-    // Obtenha informações sobre o bloco
-    float blockX = position.x;
-    float blockY = position.y;
-    float blockWidth = width;
-    float blockHeight = height;
+    // Calculate the distance between the ball's center and the closest point on the rectangle
+    float distanceX = ball.getPosition().x - closestX;
+    float distanceY = ball.getPosition().y - closestY;
 
-    // Calcule as coordenadas do centro do bloco
-    float blockCenterX = blockX + blockWidth / 2.0f;
-    float blockCenterY = blockY + blockHeight / 2.0f;
+    // Calculate the squared distance (avoiding square root for performance)
+    float squaredDistance = (distanceX * distanceX) + (distanceY * distanceY);
 
-    // Calcule a distância entre o centro do bloco e o centro da bola
-    float deltaX = ballPosition.x - std::max(blockX, std::min(ballPosition.x, blockX + blockWidth));
-    float deltaY = ballPosition.y - std::max(blockY, std::min(ballPosition.y, blockY + blockHeight));
-
-    // Verifique se houve uma colisão
-    if ((deltaX * deltaX + deltaY * deltaY) < (ballRadius * ballRadius)) {
-        return true; // Houve colisão
-    }
-
-    return false; // Não houve colisão
+    // If the squared distance is less than the squared radius of the ball, there is a collision
+    return squaredDistance <= (ball.getRadius() * ball.getRadius());
 }
 
 

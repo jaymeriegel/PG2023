@@ -10,7 +10,7 @@ Ball::Ball(float radius, glm::vec2 initialPosition, glm::vec2 velocity) {
     this->position = initialPosition;
     this->velocity = velocity;
 
-    int numSegments = 30; // Número de segmentos para a forma da bola
+    int numSegments = 30;
     float angleIncrement = 2 * glm::pi<float>() / static_cast<float>(numSegments);
 
     std::vector<float> vertices;
@@ -43,33 +43,32 @@ Ball::~Ball() {
 }
 
 void Ball::moveFirst(glm::vec2 direction, float deltaTime) {
-    // Mova a bola de acordo com a direção e o tempo delta
     position += velocity * direction * deltaTime;
 }
 
 void Ball::move(float deltaTime) {
-    // Calcule a nova posição da bola com base na velocidade e no tempo delta
+    // Calcula a nova posição da bola com base na velocidade e no tempo delta
     glm::vec2 newPosition = position + velocity * deltaTime;
 
-    // Verifique se a nova posição ultrapassa o limite da parede esquerda
+    // Verifica se a nova posição ultrapassa o limite da parede esquerda
     if (newPosition.x - radius < -0.8f) {
-        // A bola atingiu a parede esquerda, inverta a componente x da velocidade
+        // A bola atingiu a parede esquerda, inverte o componente x da velocidade
         velocity.x = -velocity.x;
-        newPosition.x = -0.8f + radius; // Defina a posição para evitar que a bola fique presa na parede
+        newPosition.x = -0.8f + radius; // Define a posição para evitar que a bola fique presa na parede
     }
 
-    // Verifique se a nova posição ultrapassa o limite da parede direita
+    // Verifica se a nova posição ultrapassa o limite da parede direita
     if (newPosition.x + radius > 0.7f) {
-        // A bola atingiu a parede direita, inverta a componente x da velocidade
+        // A bola atingiu a parede direita, inverte o componente x da velocidade
         velocity.x = -velocity.x;
-        newPosition.x = 0.7f - radius; // Defina a posição para evitar que a bola fique presa na parede
+        newPosition.x = 0.7f - radius; // Define a posição para evitar que a bola fique presa na parede
     }
 
-    // Verifique se a nova posição ultrapassa o limite do teto
+    // Verifica se a nova posição ultrapassa o limite do teto
     if (newPosition.y + radius > 0.9f) {
-        // A bola atingiu o teto, inverta a componente y da velocidade
+        // A bola atingiu o teto, inverte o componente y da velocidade
         velocity.y = -velocity.y;
-        newPosition.y = 0.9f - radius; // Defina a posição para evitar que a bola fique presa no teto
+        newPosition.y = 0.9f - radius; // Define a posição para evitar que a bola fique presa no teto
     }
 
     // Atualize a posição da bola
@@ -77,39 +76,54 @@ void Ball::move(float deltaTime) {
 }
 
 void Ball::moveCollision(Block& block) {
-    // Obtenha a posição do centro da bola
+    // Calculate the collision direction vector from the ball's center to the block's center
     glm::vec2 ballCenter = position + glm::vec2(radius, radius);
-
-    // Obtenha a posição do centro do bloco
     glm::vec2 blockCenter = block.getPosition() + glm::vec2(block.getWidth() / 2.0f, block.getHeight() / 2.0f);
+    glm::vec2 collisionDirection = glm::normalize(ballCenter - blockCenter);
 
-    // Calcule o vetor direção da bola para o centro do bloco
-    glm::vec2 collisionDirection = glm::normalize(blockCenter - ballCenter);
+    // Calculate the dimensions and edges of the block
+    float blockX = block.getX();
+    float blockY = block.getY();
+    float blockWidth = block.getWidth();
+    float blockHeight = block.getHeight();
+    float blockLeftEdge = blockX;
+    float blockRightEdge = blockX + blockWidth;
+    float blockTopEdge = blockY;
+    float blockBottomEdge = blockY + blockHeight;
 
-    // Verifique a direção da colisão (cima, baixo, esquerda, direita)
-    // e ajuste a velocidade da bola com base nessa direção
-    if (std::abs(collisionDirection.x) > std::abs(collisionDirection.y)) {
-        // Colisão nas laterais (esquerda ou direita) do bloco
-        velocity.x = -velocity.x; // Inverta a direção x da bola
-    } else {
-        // Colisão na parte superior ou inferior do bloco
-        velocity.y = -velocity.y; // Inverta a direção y da bola
+    // Calculate the collision point on the block
+    float collisionPointX = position.x + radius * collisionDirection.x;
+    float collisionPointY = position.y + radius * collisionDirection.y;
+
+    // Check which side of the block was hit
+    bool hitLeft = collisionPointX < blockLeftEdge;
+    bool hitRight = collisionPointX > blockRightEdge;
+    bool hitTop = collisionPointY < blockTopEdge;
+    bool hitBottom = collisionPointY > blockBottomEdge;
+
+    // Adjust the ball's velocity based on the side of the block hit
+    if (hitLeft || hitRight) {
+        velocity.x = -velocity.x; // Invert the x-direction velocity
     }
 
-    // Mova a bola para fora do bloco para evitar colisões múltiplas
-    // Isso evita que a bola fique "preso" no bloco após uma colisão
-    if (collisionDirection.x < 0) {
-        position.x = block.getX() + block.getWidth();
-    } else {
-        position.x = block.getX() - 2.0f * radius;
+    if (hitTop || hitBottom) {
+        velocity.y = -velocity.y; // Invert the y-direction velocity
     }
 
-    if (collisionDirection.y < 0) {
-        position.y = block.getY() + block.getHeight();
-    } else {
-        position.y = block.getY() - 2.0f * radius;
+    // Move the ball out of the block to avoid multiple collisions
+    if (hitLeft) {
+        position.x = blockLeftEdge - radius;
+    } else if (hitRight) {
+        position.x = blockRightEdge + radius;
+    }
+
+    if (hitTop) {
+        position.y = blockTopEdge - radius;
+    } else if (hitBottom) {
+        position.y = blockBottomEdge + radius;
     }
 }
+
 
 
 void Ball::draw() {

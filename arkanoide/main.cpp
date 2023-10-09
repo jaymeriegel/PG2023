@@ -11,7 +11,7 @@ const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
 float blockWidth = 0.15f;
 float blockHeight = 0.1f;
-int numRows = 5;
+int numRows = 7;
 int numCols = 8;
 std::vector<glm::vec3> randomColors;
 std::vector<Block> disabledBlocks;
@@ -85,6 +85,15 @@ GLuint createShaderProgram(const char* vertexShaderSource, const char* fragmentS
     return shaderProgram;
 }
 
+bool isBlockInDisabledBlocks(const std::vector<Block>& disabledBlocks, const Block& block) {
+    for (const auto& disabledBlock : disabledBlocks) {
+        if (disabledBlock.getPosition() == block.getPosition()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::vector<Block> drawBlocks() {
     std::vector<Block> activeBlocks;
     for (int i = 0; i < numRows; ++i) {
@@ -93,8 +102,11 @@ std::vector<Block> drawBlocks() {
             float x = -0.65f + j * (blockWidth + 0.02f);  // Espaçamento entre os blocos: 0.02f
             float y = 0.8f - i * (blockHeight + 0.02f);  // Espaçamento entre os blocos: 0.02f
             Block block(blockWidth, blockHeight, x, y);
-            block.draw(randomColor.x, randomColor.y, randomColor.z);
-            activeBlocks.push_back(block);
+
+            if (!isBlockInDisabledBlocks(disabledBlocks, block)) {
+                block.draw(randomColor.x, randomColor.y, randomColor.z);
+                activeBlocks.push_back(block);
+            }            
         }
     }
     return activeBlocks;
@@ -157,22 +169,22 @@ void drawContour() {
 }
 
 bool checkCollisionPaddle(Ball& ball, Paddle& paddle) {
-    // Obtenha informações do paddle
+    // Obteem as informações do paddle
     float paddleX = paddle.getPosition().x;
     float paddleY = paddle.getPosition().y;
     float paddleWidth = paddle.getWidth();
     float paddleHeight = paddle.getHeight();
 
-    // Obtenha informações da bola
+    // Obtem as informações da bola
     glm::vec2 ballPosition = ball.getPosition();
     float ballRadius = ball.getRadius();
 
-    // Verifique a colisão
+    // Verifica a colisão
     if (ballPosition.x + ballRadius > paddleX - paddleWidth / 2.0f &&
         ballPosition.x - ballRadius < paddleX + paddleWidth / 2.0f &&
         ballPosition.y + ballRadius > paddleY - paddleHeight / 2.0f &&
         ballPosition.y - ballRadius < paddleY + paddleHeight / 2.0f) {
-        // A colisão ocorreu, inverta a componente y da velocidade da bola para fazê-la quicar para cima
+        // Ocorreu colisao, inverte o componente y da velocidade da bola para fazê-la quicar para cima
         glm::vec2 ballVelocity = ball.velocity;
         ballVelocity.y = -ballVelocity.y;
         ball.velocity = ballVelocity;
@@ -185,8 +197,8 @@ bool checkCollisionPaddle(Ball& ball, Paddle& paddle) {
 void verifyCollisionBlocks(std::vector<Block>& blocks, Ball& ball) {
     // Loop através de todos os blocos
     for (auto& block : blocks) {
-        // Verifique se o bloco não está desativado
         if (block.checkCollision(ball)) { 
+            disabledBlocks.push_back(block);
             ball.moveCollision(block);
             break;
         }
@@ -209,7 +221,7 @@ int main() {
     populateRandomColors();
     
     Paddle paddle(0.2f, 0.02f, 0.0f);
-    Ball ball(0.02f, glm::vec2(0.0f, -0.85f), glm::vec2(0.5f, 0.5f));
+    Ball ball(0.02f, glm::vec2(0.0f, -0.85f), glm::vec2(0.8f, 0.8f));
 
     bool gameStarted = false; // Variável para controlar se o jogo começou
     int first = 0;
@@ -220,7 +232,7 @@ int main() {
     
         float deltaTime = 0.016f;
 
-        // Verifique se a tecla Backspace foi pressionada para iniciar o jogo
+        // Verifique se spaço foi pressionado
         if (!gameStarted && glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
             first = 1;
             gameStarted = true; // Inicie o jogo
@@ -234,7 +246,6 @@ int main() {
                 paddle.moveRight(deltaTime);
             }
 
-            // Limpe a tela
             glClear(GL_COLOR_BUFFER_BIT);
             drawContour();
             paddle.draw();
@@ -253,7 +264,11 @@ int main() {
             }
 
             verifyCollisionBlocks(activeBlocks, ball); 
-            checkCollisionPaddle(ball, paddle);    
+            checkCollisionPaddle(ball, paddle);
+
+            if (disabledBlocks.size() == numCols * numRows) {
+                glfwSetWindowShouldClose(window, GLFW_TRUE);
+            }    
             
             ball.draw();
         } else {
