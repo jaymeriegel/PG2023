@@ -1,5 +1,5 @@
 # Arkanoide
-Jogo arkanoite implementado com openGL, GLFW e GLAD
+Jogo arkanoide implementado com openGL, GLFW e GLAD
 
 ## Para rodar
 
